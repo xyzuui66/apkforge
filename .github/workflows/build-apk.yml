@@ -1,0 +1,330 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Name'
+        required: true
+      package_name:
+        description: 'Package Name'
+        required: true
+      version:
+        description: 'Version'
+        required: true
+        default: '1.0.0'
+      version_code:
+        description: 'Version Code'
+        required: true
+        default: '1'
+      target_sdk:
+        description: 'Target SDK'
+        required: true
+        default: '34'
+      min_sdk:
+        description: 'Min SDK'
+        required: true
+        default: '24'
+      source_type:
+        description: 'Source type: url or file'
+        required: true
+        default: 'url'
+      web_url:
+        description: 'Website URL (if source_type=url)'
+        required: false
+      entry_point:
+        description: 'Entry point (if source_type=file)'
+        required: false
+        default: 'index.html'
+      orientation:
+        description: 'Screen orientation'
+        required: false
+        default: 'unspecified'
+      build_id:
+        description: 'Unique build ID'
+        required: true
+      site_zip_url:
+        description: 'URL to download site ZIP (if source_type=file)'
+        required: false
+      icon_url:
+        description: 'URL to download icon image'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install build tools
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" --sdk_root=$ANDROID_HOME
+
+      - name: Create Android Project
+        env:
+          APP_NAME: ${{ github.event.inputs.app_name }}
+          PKG_NAME: ${{ github.event.inputs.package_name }}
+          VERSION: ${{ github.event.inputs.version }}
+          VERSION_CODE: ${{ github.event.inputs.version_code }}
+          TARGET_SDK: ${{ github.event.inputs.target_sdk }}
+          MIN_SDK: ${{ github.event.inputs.min_sdk }}
+          SOURCE_TYPE: ${{ github.event.inputs.source_type }}
+          WEB_URL: ${{ github.event.inputs.web_url }}
+          ENTRY_POINT: ${{ github.event.inputs.entry_point }}
+          ORIENTATION: ${{ github.event.inputs.orientation }}
+          ICON_URL: ${{ github.event.inputs.icon_url }}
+          SITE_ZIP_URL: ${{ github.event.inputs.site_zip_url }}
+        run: |
+          mkdir -p apkproject/app/src/main/java/$(echo $PKG_NAME | tr '.' '/')
+          mkdir -p apkproject/app/src/main/res/{layout,values,mipmap-mdpi,mipmap-hdpi,mipmap-xhdpi,mipmap-xxhdpi,mipmap-xxxhdpi}
+          mkdir -p apkproject/gradle/wrapper
+
+          # ── settings.gradle ────────────────────────────────────────────────
+          cat > apkproject/settings.gradle << GRADLE
+          rootProject.name = "$APP_NAME"
+          include ':app'
+          GRADLE
+
+          # ── root build.gradle ──────────────────────────────────────────────
+          cat > apkproject/build.gradle << GRADLE
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          GRADLE
+
+          # ── gradle.properties ─────────────────────────────────────────────
+          cat > apkproject/gradle.properties << GRADLE
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          GRADLE
+
+          # ── app/build.gradle ──────────────────────────────────────────────
+          cat > apkproject/app/build.gradle << GRADLE
+          plugins { id 'com.android.application' }
+          android {
+              namespace "$PKG_NAME"
+              compileSdk $TARGET_SDK
+              defaultConfig {
+                  applicationId "$PKG_NAME"
+                  minSdk $MIN_SDK
+                  targetSdk $TARGET_SDK
+                  versionCode $VERSION_CODE
+                  versionName "$VERSION"
+              }
+              signingConfigs {
+                  release {
+                      storeFile file("keystore.jks")
+                      storePassword "apkforge123"
+                      keyAlias "apkforgekey"
+                      keyPassword "apkforge123"
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.webkit:webkit:1.9.0'
+          }
+          GRADLE
+
+          # ── Determine load URL ─────────────────────────────────────────────
+          if [ "$SOURCE_TYPE" = "url" ]; then
+            LOAD_URL="$WEB_URL"
+          else
+            LOAD_URL="file:///android_asset/$ENTRY_POINT"
+          fi
+
+          # ── AndroidManifest.xml ────────────────────────────────────────────
+          ORIENT_ATTR=""
+          if [ "$ORIENTATION" != "unspecified" ]; then
+            ORIENT_ATTR="android:screenOrientation=\"$ORIENTATION\""
+          fi
+
+          cat > apkproject/app/src/main/AndroidManifest.xml << XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="$APP_NAME"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:supportsRtl="true"
+                  android:hardwareAccelerated="true"
+                  android:usesCleartextTraffic="true"
+                  android:theme="@style/Theme.WebApp">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden"
+                      $ORIENT_ATTR>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          XML
+
+          # ── MainActivity.java ──────────────────────────────────────────────
+          JAVA_DIR="apkproject/app/src/main/java/$(echo $PKG_NAME | tr '.' '/')"
+          cat > "$JAVA_DIR/MainActivity.java" << JAVA
+          package $PKG_NAME;
+          import android.os.Bundle;
+          import android.webkit.*;
+          import android.view.KeyEvent;
+          import androidx.appcompat.app.AppCompatActivity;
+          public class MainActivity extends AppCompatActivity {
+              private WebView webView;
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+                  webView = findViewById(R.id.webview);
+                  WebSettings s = webView.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setAllowFileAccess(true);
+                  s.setLoadWithOverviewMode(true);
+                  s.setUseWideViewPort(true);
+                  s.setBuiltInZoomControls(false);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { v.loadUrl(url); return true; }
+                  });
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override public void onPermissionRequest(PermissionRequest r) { r.grant(r.getResources()); }
+                  });
+                  webView.loadUrl("$LOAD_URL");
+              }
+              @Override
+              public boolean onKeyDown(int k, KeyEvent e) {
+                  if (k == KeyEvent.KEYCODE_BACK && webView.canGoBack()) { webView.goBack(); return true; }
+                  return super.onKeyDown(k, e);
+              }
+          }
+          JAVA
+
+          # ── Layout ─────────────────────────────────────────────────────────
+          cat > apkproject/app/src/main/res/layout/activity_main.xml << XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent">
+              <WebView android:id="@+id/webview"
+                  android:layout_width="match_parent" android:layout_height="match_parent"/>
+          </RelativeLayout>
+          XML
+
+          # ── Values ─────────────────────────────────────────────────────────
+          cat > apkproject/app/src/main/res/values/strings.xml << XML
+          <resources><string name="app_name">$APP_NAME</string></resources>
+          XML
+          cat > apkproject/app/src/main/res/values/themes.xml << XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.WebApp" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:statusBarColor">@android:color/black</item>
+              </style>
+          </resources>
+          XML
+
+          # ── ProGuard ───────────────────────────────────────────────────────
+          echo "-keep class * { *; }" > apkproject/app/proguard-rules.pro
+
+          # ── Download & place icon ──────────────────────────────────────────
+          if [ -n "$ICON_URL" ]; then
+            wget -q "$ICON_URL" -O /tmp/icon.png && \
+            for d in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+              cp /tmp/icon.png "apkproject/app/src/main/res/$d/ic_launcher.png"
+              cp /tmp/icon.png "apkproject/app/src/main/res/$d/ic_launcher_round.png"
+            done
+          else
+            # Minimal 1x1 white PNG
+            printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc`\xf8\xcf\xc0\x00\x00\x00\x02\x00\x01n!\xbc3\x00\x00\x00\x00IEND\xaeB`\x82' > /tmp/icon.png
+            for d in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+              cp /tmp/icon.png "apkproject/app/src/main/res/$d/ic_launcher.png"
+              cp /tmp/icon.png "apkproject/app/src/main/res/$d/ic_launcher_round.png"
+            done
+          fi
+
+          # ── Download site ZIP if file mode ─────────────────────────────────
+          if [ "$SOURCE_TYPE" = "file" ] && [ -n "$SITE_ZIP_URL" ]; then
+            mkdir -p apkproject/app/src/main/assets
+            wget -q "$SITE_ZIP_URL" -O /tmp/site.zip
+            unzip -q /tmp/site.zip -d apkproject/app/src/main/assets/
+          fi
+
+      - name: Setup Gradle Wrapper
+        run: |
+          cd apkproject
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip -O /tmp/gradle.zip
+          mkdir -p /opt/gradle
+          unzip -q /tmp/gradle.zip -d /opt/gradle
+          
+          cat > gradle/wrapper/gradle-wrapper.properties << EOF
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+          
+          # Use system gradle directly
+          export PATH=$PATH:/opt/gradle/gradle-8.4/bin
+
+      - name: Generate Keystore
+        run: |
+          cd apkproject/app
+          keytool -genkey -v \
+            -keystore keystore.jks \
+            -alias apkforgekey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass apkforge123 \
+            -keypass apkforge123 \
+            -dname "CN=APKForge, OU=Dev, O=APKForge, L=City, S=State, C=US"
+
+      - name: Build APK
+        run: |
+          cd apkproject
+          export PATH=$PATH:/opt/gradle/gradle-8.4/bin
+          gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Find and rename APK
+        run: |
+          APK_PATH=$(find apkproject/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "Found APK: $APK_PATH"
+          SAFE_NAME=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+          mkdir -p output
+          cp "$APK_PATH" "output/${SAFE_NAME}-v${{ github.event.inputs.version }}.apk"
+          echo "APK_FILE=output/${SAFE_NAME}-v${{ github.event.inputs.version }}.apk" >> $GITHUB_ENV
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ github.event.inputs.build_id }}
+          path: output/*.apk
+          retention-days: 7

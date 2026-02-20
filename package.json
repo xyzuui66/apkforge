@@ -1,0 +1,8 @@
+{
+  "name": "apkforge",
+  "version": "2.0.0",
+  "description": "WebView APK Builder — powered by GitHub Actions",
+  "dependencies": {
+    "uuid": "^9.0.0"
+  }
+}

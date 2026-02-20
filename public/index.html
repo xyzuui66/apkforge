@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APKForge — WebView Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--s2:#1a1a26;--bd:#2a2a3a;--a:#00ff88;--r:#ff4d6d;--w:#ffc857;--t:#e8e8f0;--m:#6b6b80;--c:#13131e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd);background:rgba(10,10,15,.9);backdrop-filter:blur(12px)}
+.logo{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--a)}.logo span{color:var(--t)}
+.page{display:none;position:relative;z-index:1;min-height:calc(100vh - 57px)}.page.active{display:flex}
+#pg-b{flex-direction:column;align-items:center;padding:44px 16px 80px}
+.hl{font-family:'Space Mono',monospace;font-size:10px;color:var(--a);letter-spacing:4px;text-transform:uppercase;margin-bottom:12px}
+h1{font-size:clamp(28px,8vw,56px);font-weight:800;line-height:1.05;text-align:center;margin-bottom:10px;letter-spacing:-2px}
+h1 em{font-style:normal;color:var(--a)}
+.hs{color:var(--m);font-size:12px;text-align:center;margin-bottom:40px}
+.steps{display:flex;align-items:center;margin-bottom:32px}
+.step{display:flex;flex-direction:column;align-items:center;gap:5px}
+.sdot{width:30px;height:30px;border-radius:50%;border:2px solid var(--bd);background:#111118;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:10px;color:var(--m);transition:all .3s}
+.step.active .sdot{border-color:var(--a);background:rgba(0,255,136,.1);color:var(--a);box-shadow:0 0 14px rgba(0,255,136,.3)}
+.step.done .sdot{border-color:var(--a);background:var(--a);color:#000}
+.slbl{font-size:9px;color:var(--m);white-space:nowrap;font-weight:700}
+.step.active .slbl{color:var(--a)}.step.done .slbl{color:var(--t)}
+.sl{width:52px;height:1px;background:var(--bd);margin-bottom:18px;transition:background .3s}.sl.done{background:var(--a)}
+.card{width:100%;max-width:560px;background:var(--c);border:1px solid var(--bd);border-radius:16px;padding:28px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent);opacity:.5}
+.panel{display:none}.panel.active{display:block;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.pt{font-size:19px;font-weight:700;margin-bottom:4px;letter-spacing:-.5px}
+.ps{font-size:12px;color:var(--m);margin-bottom:22px}
+.f{margin-bottom:18px}
+label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--m);margin-bottom:6px}
+.req{color:var(--r);margin-left:2px}
+input[type=text],input[type=url],select{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'Space Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(0,255,136,.1)}
+select option{background:var(--s2)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.irow{display:flex;align-items:center;gap:14px}
+.iprev{width:68px;height:68px;border-radius:15px;border:2px dashed var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;overflow:hidden;flex-shrink:0}
+.iprev:hover{border-color:var(--a)}
+.iprev img{width:100%;height:100%;object-fit:cover;border-radius:13px}
+.iinfo h4{font-size:12px;font-weight:600;margin-bottom:3px}
+.iinfo p{font-size:11px;color:var(--m);margin-bottom:6px}
+.bsm{font-family:'Space Mono',monospace;font-size:10px;padding:5px 11px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--t);cursor:pointer;transition:all .2s}
+.bsm:hover{border-color:var(--a);color:var(--a)}
+.stog{display:flex;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:3px;margin-bottom:14px;gap:3px}
+.tb{flex:1;padding:8px;text-align:center;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--m);border:none;background:transparent;font-family:'Syne',sans-serif;transition:all .2s}
+.tb.on{background:var(--a);color:#000}
+.sp{display:none}.sp.on{display:block}
+.dz{border:2px dashed var(--bd);border-radius:10px;padding:28px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2);position:relative}
+.dz:hover,.dz.ov{border-color:var(--a);background:rgba(0,255,136,.05)}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dzi{font-size:28px;display:block;margin-bottom:6px}
+.dzt{font-size:12px;font-weight:600;margin-bottom:2px}
+.dzs{font-size:10px;color:var(--m)}
+.fcho{display:none;align-items:center;gap:8px;padding:8px;background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.2);border-radius:7px;margin-top:8px}
+.fcho .fn{font-family:'Space Mono',monospace;font-size:11px;color:var(--a);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcho .fs{font-size:10px;color:var(--m);font-family:'Space Mono',monospace}
+.brow{display:flex;gap:8px;margin-top:22px;justify-content:flex-end}
+.btn{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:8px;border:none;cursor:pointer;transition:all .2s}
+.bg{background:transparent;border:1px solid var(--bd);color:var(--m)}.bg:hover{border-color:var(--t);color:var(--t)}
+.bp{background:var(--a);color:#000}.bp:hover{background:#00e87a;transform:translateY(-1px)}
+.bbuild{background:linear-gradient(135deg,var(--a),#00ccff);color:#000;font-size:14px;padding:14px;border-radius:10px;width:100%;letter-spacing:.6px}
+.bbuild:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,255,136,.4)}
+.rv{display:grid;gap:8px;margin-bottom:18px}
+.rvitem{display:flex;align-items:flex-start;gap:10px;padding:11px;background:var(--s2);border-radius:8px;border:1px solid var(--bd)}
+.rvico{width:30px;height:30px;border-radius:8px;background:rgba(0,255,136,.1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.rvico img{width:30px;height:30px;border-radius:8px;object-fit:cover}
+.rvl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--m);margin-bottom:2px}
+.rvv{font-family:'Space Mono',monospace;font-size:11px;color:var(--t);word-break:break-all}
+.ferr{font-size:10px;color:var(--r);margin-top:4px;font-family:'Space Mono',monospace;display:none}
+input.inv,select.inv{border-color:var(--r)!important}
+/* Setup banner */
+.setup-banner{background:rgba(255,196,87,.07);border:1px solid rgba(255,196,87,.2);border-radius:10px;padding:16px;margin-bottom:24px;font-size:12px;line-height:1.7;display:none}
+.setup-banner.show{display:block}
+.setup-banner h4{color:var(--w);margin-bottom:8px;font-size:13px}
+.setup-banner code{background:rgba(0,255,136,.1);color:var(--a);padding:1px 5px;border-radius:4px;font-family:'Space Mono',monospace;font-size:10px}
+.setup-banner ol{padding-left:18px}
+.setup-banner ol li{margin-bottom:4px;color:var(--m)}
+/* Dashboard */
+#pg-d{flex-direction:column;align-items:center;padding:44px 16px 80px}
+.bcard{width:100%;max-width:620px;background:var(--c);border:1px solid var(--bd);border-radius:16px;overflow:hidden}
+.bhead{padding:18px 24px;background:#111118;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.btitle{font-size:15px;font-weight:700}
+.bst{font-family:'Space Mono',monospace;font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(0,255,136,.1);color:var(--a);border:1px solid rgba(0,255,136,.2)}
+.bst.fail{background:rgba(255,77,109,.1);color:var(--r);border-color:rgba(255,77,109,.2)}
+.bst.done{background:rgba(0,255,136,.15)}
+.bbod{padding:22px 24px}
+.ameta{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:12px;background:var(--s2);border-radius:10px}
+.aico{width:46px;height:46px;border-radius:12px;background:#111118;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0}
+.aico img{width:46px;height:46px;border-radius:12px;object-fit:cover}
+.ameta h3{font-size:15px;font-weight:700;margin-bottom:2px}
+.ameta p{font-size:11px;color:var(--m);font-family:'Space Mono',monospace}
+.stages{display:grid;gap:5px;margin-bottom:18px}
+.stage{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);transition:all .3s}
+.stage.on{border-color:rgba(0,255,136,.3);background:rgba(0,255,136,.05)}
+.stage.ok{border-color:rgba(0,255,136,.2)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--bd);flex-shrink:0;transition:all .3s}
+.stage.on .dot{background:var(--a);box-shadow:0 0 6px var(--a);animation:bl 1s infinite}
+.stage.ok .dot{background:var(--a)}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.sn{font-size:12px;font-weight:600;flex:1;color:var(--m);transition:color .3s}
+.stage.on .sn,.stage.ok .sn{color:var(--t)}
+.ss{font-family:'Space Mono',monospace;font-size:10px;color:var(--m)}
+.stage.on .ss,.stage.ok .ss{color:var(--a)}
+.prog{margin-bottom:18px}
+.prh{display:flex;justify-content:space-between;margin-bottom:5px}
+.prl{font-size:11px;font-weight:600}.prp{font-family:'Space Mono',monospace;font-size:11px;color:var(--a)}
+.prbar{height:4px;background:var(--s2);border-radius:3px;overflow:hidden}
+.prfil{height:100%;background:linear-gradient(90deg,var(--a),#00ccff);border-radius:3px;transition:width .6s ease;width:0}
+.log{background:#080810;border:1px solid var(--bd);border-radius:9px;padding:14px;font-family:'Space Mono',monospace;font-size:10.5px;height:180px;overflow-y:auto;margin-bottom:16px;line-height:1.9;scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
+.ll{display:flex;gap:8px;animation:li .2s ease;opacity:0;animation-fill-mode:forwards}
+@keyframes li{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.lts{color:var(--m);flex-shrink:0}
+.lm{color:#c0c0d0}.lm.s{color:var(--a)}.lm.e{color:var(--r)}.lm.w{color:var(--w)}
+.ghlink{display:none;align-items:center;gap:6px;font-size:11px;color:var(--m);text-decoration:none;font-family:'Space Mono',monospace;margin-bottom:14px;padding:6px 12px;border:1px solid var(--bd);border-radius:6px;transition:all .2s}
+.ghlink:hover{color:var(--a);border-color:rgba(0,255,136,.3)}
+.ebanner{background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.2);border-radius:9px;padding:13px;color:var(--r);font-size:11px;margin-top:10px;display:none;line-height:1.7}
+.ebanner.show{display:block}
+.done{display:none;text-align:center;padding:12px 0}
+.done.show{display:block;animation:fi .5s ease}
+.dico{font-size:52px;display:block;margin-bottom:12px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.dt{font-size:22px;font-weight:800;margin-bottom:6px;letter-spacing:-.5px}
+.ds{color:var(--m);font-size:12px;margin-bottom:18px}
+.apkbox{display:inline-flex;align-items:center;gap:9px;padding:11px 15px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:18px}
+.apkn{font-family:'Space Mono',monospace;font-size:11px;font-weight:700}
+.apks{font-size:10px;color:var(--m);font-family:'Space Mono',monospace}
+.bdl{background:linear-gradient(135deg,var(--a),#00ccff);color:#000;font-size:13px;font-weight:700;padding:11px 26px;border-radius:9px;border:none;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.bdl:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,255,136,.4)}
+.bnew{background:transparent;border:1px solid var(--bd);color:var(--m);font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;margin-left:8px}
+.bnew:hover{border-color:var(--t);color:var(--t)}
+@media(max-width:480px){.card,.bbod{padding:18px}.sl{width:36px}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">APK<span>Forge</span></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--m);border:1px solid var(--bd);padding:3px 9px;border-radius:20px">Free • No CC</div>
+  </div>
+</nav>
+
+<!-- ═══ BUILDER ═══ -->
+<div class="page active" id="pg-b">
+  <div class="hl">Build Your App</div>
+  <h1>WebView <em>APK</em><br>Builder</h1>
+  <p class="hs">Gratis · Tanpa kartu bank · Build via GitHub Actions</p>
+
+  <!-- Setup guide banner -->
+  <div class="setup-banner show" id="setupBanner" style="max-width:560px;width:100%">
+    <h4>⚙ Cara Setup (sekali saja)</h4>
+    <ol>
+      <li>Upload folder project ini ke <strong>GitHub repo baru</strong></li>
+      <li>Buat <strong>GitHub Personal Access Token</strong> (Settings → Developer Settings → PAT → centang <code>repo</code> + <code>workflow</code>)</li>
+      <li>Deploy ke <a href="https://vercel.com" target="_blank" style="color:var(--a)">Vercel.com</a> (gratis, no CC) → tambah env vars: <code>GH_TOKEN</code>, <code>GH_OWNER</code>, <code>GH_REPO</code></li>
+      <li>Selesai! Build APK gratis unlimited 🎉</li>
+    </ol>
+    <button class="bsm" style="margin-top:10px" onclick="document.getElementById('setupBanner').style.display='none'">✓ Mengerti, tutup</button>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="s1"><div class="sdot">1</div><div class="slbl">Identity</div></div>
+    <div class="sl" id="l1"></div>
+    <div class="step" id="s2"><div class="sdot">2</div><div class="slbl">Version</div></div>
+    <div class="sl" id="l2"></div>
+    <div class="step" id="s3"><div class="sdot">3</div><div class="slbl">Source</div></div>
+    <div class="sl" id="l3"></div>
+    <div class="step" id="s4"><div class="sdot">4</div><div class="slbl">Build</div></div>
+  </div>
+
+  <div class="card">
+
+    <div class="panel active" id="p1">
+      <div class="pt">Identitas Aplikasi</div>
+      <div class="ps">Nama dan ikon untuk aplikasimu.</div>
+      <div class="f">
+        <label>Ikon <span style="color:var(--m);font-size:9px">(opsional)</span></label>
+        <div class="irow">
+          <div class="iprev" id="iprev" onclick="document.getElementById('iinp').click()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+          </div>
+          <div class="iinfo">
+            <h4>Upload Ikon</h4>
+            <p>PNG/JPG — 512×512px</p>
+            <button class="bsm" type="button" onclick="document.getElementById('iinp').click()">Pilih File</button>
+          </div>
+        </div>
+        <input type="file" id="iinp" accept="image/*" style="display:none" onchange="onIcon(event)">
+      </div>
+      <div class="f">
+        <label>Nama Aplikasi <span class="req">*</span></label>
+        <input type="text" id="appName" placeholder="My Awesome App" maxlength="50">
+        <div class="ferr" id="e1">Nama wajib diisi!</div>
+      </div>
+      <div class="f">
+        <label>Package Name <span style="color:var(--m);font-size:9px">(opsional — auto jika kosong)</span></label>
+        <input type="text" id="pkgName" placeholder="com.example.myapp">
+      </div>
+      <div class="brow"><button class="btn bp" onclick="go(2)">Lanjut →</button></div>
+    </div>
+
+    <div class="panel" id="p2">
+      <div class="pt">Versi Aplikasi</div>
+      <div class="ps">Preset atau custom.</div>
+      <div class="g2">
+        <div class="f">
+          <label>Preset</label>
+          <select id="vp" onchange="onVp(this.value)">
+            <option value="">— Pilih —</option>
+            <option value="1.0.0">1.0.0 — Initial</option>
+            <option value="1.0.1">1.0.1 — Bug Fix</option>
+            <option value="1.1.0">1.1.0 — Minor</option>
+            <option value="2.0.0">2.0.0 — Major</option>
+            <option value="custom">Custom...</option>
+          </select>
+        </div>
+        <div class="f" id="vcf" style="display:none">
+          <label>Custom</label>
+          <input type="text" id="vc" placeholder="1.2.3">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="f">
+          <label>Target SDK</label>
+          <select id="ts">
+            <option value="34">API 34 — Android 14</option>
+            <option value="33">API 33 — Android 13</option>
+            <option value="31">API 31 — Android 12</option>
+            <option value="30">API 30 — Android 11</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>Min SDK</label>
+          <select id="ms">
+            <option value="24">API 24 — Android 7</option>
+            <option value="26">API 26 — Android 8</option>
+            <option value="28">API 28 — Android 9</option>
+          </select>
+        </div>
+      </div>
+      <div class="f">
+        <label>Orientasi</label>
+        <select id="ori">
+          <option value="unspecified">Auto</option>
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </div>
+      <div class="brow">
+        <button class="btn bg" onclick="go(1)">← Kembali</button>
+        <button class="btn bp" onclick="go(3)">Lanjut →</button>
+      </div>
+    </div>
+
+    <div class="panel" id="p3">
+      <div class="pt">Sumber Konten</div>
+      <div class="ps">URL website atau file HTML/ZIP.</div>
+      <div class="stog">
+        <button class="tb on" id="tb-url" onclick="setSrc('url')">🌐 URL Website</button>
+        <button class="tb"    id="tb-file" onclick="setSrc('file')">📁 File Lokal</button>
+      </div>
+      <div class="sp on" id="sp-url">
+        <div class="f">
+          <label>URL <span class="req">*</span></label>
+          <input type="url" id="wurl" placeholder="https://example.com">
+          <div class="ferr" id="e2">URL harus https://...</div>
+        </div>
+      </div>
+      <div class="sp" id="sp-file">
+        <div class="f">
+          <label>Upload ZIP/HTML <span class="req">*</span></label>
+          <div class="dz" id="dz" ondragover="dzd(event,true)" ondragleave="dzd(event,false)" ondrop="dzp(event)">
+            <input type="file" id="finp" accept=".zip,.html,.htm" onchange="onF(event)">
+            <span class="dzi">📦</span>
+            <div class="dzt">Drag & drop file</div>
+            <div class="dzs">klik — .zip / .html (max 10MB)</div>
+          </div>
+          <div class="fcho" id="fcho"><span>📄</span><span class="fn" id="fn">—</span><span class="fs" id="fs">—</span></div>
+          <div class="ferr" id="e3">File wajib dipilih!</div>
+        </div>
+        <div class="f">
+          <label>Entry Point</label>
+          <input type="text" id="ep" placeholder="index.html" value="index.html">
+        </div>
+      </div>
+      <div class="brow">
+        <button class="btn bg" onclick="go(2)">← Kembali</button>
+        <button class="btn bp" onclick="go(4)">Lanjut →</button>
+      </div>
+    </div>
+
+    <div class="panel" id="p4">
+      <div class="pt">Review & Build</div>
+      <div class="ps">Cek konfigurasi lalu build.</div>
+      <div class="rv" id="rv"></div>
+      <button class="btn bbuild" onclick="startBuild()">🚀 &nbsp;BUILD APK SEKARANG</button>
+      <div class="brow" style="justify-content:flex-start;margin-top:12px">
+        <button class="btn bg" onclick="go(3)">← Kembali</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="page" id="pg-d">
+  <div class="bcard">
+    <div class="bhead">
+      <div class="btitle">Build Dashboard</div>
+      <div class="bst" id="bst">⚙ Queued</div>
+    </div>
+    <div class="bbod">
+      <div class="ameta">
+        <div class="aico" id="aico">📱</div>
+        <div><h3 id="aname">—</h3><p id="ameta2">—</p></div>
+      </div>
+      <div class="stages">
+        <div class="stage" id="st0"><div class="dot"></div><div class="sn">Trigger GitHub Actions</div><div class="ss" id="ss0">—</div></div>
+        <div class="stage" id="st1"><div class="dot"></div><div class="sn">Setup JDK + Android SDK</div><div class="ss" id="ss1">—</div></div>
+        <div class="stage" id="st2"><div class="dot"></div><div class="sn">Generate Android project</div><div class="ss" id="ss2">—</div></div>
+        <div class="stage" id="st3"><div class="dot"></div><div class="sn">Gradle assembleRelease</div><div class="ss" id="ss3">—</div></div>
+        <div class="stage" id="st4"><div class="dot"></div><div class="sn">Sign & package APK</div><div class="ss" id="ss4">—</div></div>
+        <div class="stage" id="st5"><div class="dot"></div><div class="sn">Upload artifact</div><div class="ss" id="ss5">—</div></div>
+      </div>
+      <div class="prog">
+        <div class="prh"><div class="prl">Progress</div><div class="prp" id="pp">0%</div></div>
+        <div class="prbar"><div class="prfil" id="pf"></div></div>
+      </div>
+      <div class="log" id="log"></div>
+      <a class="ghlink" id="ghlink" href="#" target="_blank">🐙 Lihat di GitHub Actions →</a>
+      <div class="ebanner" id="eb"></div>
+      <div class="done" id="dn">
+        <span class="dico">🎉</span>
+        <div class="dt">Build Berhasil!</div>
+        <div class="ds">APK didownload dalam format ZIP dari GitHub Actions.</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div class="apkbox">
+            <div style="font-size:22px">📦</div>
+            <div><div class="apkn" id="apkn">app-release.apk</div><div class="apks">ZIP dari GitHub Artifact (7 hari)</div></div>
+          </div>
+          <div>
+            <button class="bdl" onclick="doDownload()">⬇ Download APK (ZIP)</button>
+            <button class="bnew" onclick="newBuild()">+ Baru</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S={step:1,iconFile:null,iconUrl:null,appName:'',pkgName:'',version:'1.0.0',targetSdk:34,minSdk:24,orientation:'unspecified',srcType:'url',webUrl:'',fileObj:null,entryPoint:'index.html',runId:null,downloadUrl:null};
+
+function go(n){if(n>S.step&&!val(S.step))return;S.step=n;for(let i=1;i<=4;i++){document.getElementById('s'+i).className='step '+(i<n?'done':i===n?'active':'');const l=document.getElementById('l'+i);if(l)l.className='sl '+(i<n?'done':'');}document.querySelectorAll('.panel').forEach((p,i)=>p.className='panel '+(i+1===n?'active':''));if(n===4)buildRv();}
+
+function val(step){
+  if(step===1){const v=document.getElementById('appName').value.trim();if(!v){show('e1');mark('appName');return false;}hide('e1');unmark('appName');S.appName=v;S.pkgName=document.getElementById('pkgName').value.trim()||('com.webviewapp.'+v.toLowerCase().replace(/[^a-z0-9]/g,''));}
+  if(step===2){const p=document.getElementById('vp').value,c=document.getElementById('vc').value.trim();S.version=(p==='custom'||!p)?(c||'1.0.0'):p;S.targetSdk=+document.getElementById('ts').value;S.minSdk=+document.getElementById('ms').value;S.orientation=document.getElementById('ori').value;}
+  if(step===3){if(S.srcType==='url'){const u=document.getElementById('wurl').value.trim();if(!u.startsWith('http')){show('e2');mark('wurl');return false;}hide('e2');unmark('wurl');S.webUrl=u;}else{if(!S.fileObj){show('e3');return false;}hide('e3');S.entryPoint=document.getElementById('ep').value.trim()||'index.html';}}
+  return true;
+}
+const show=id=>document.getElementById(id).style.display='block';
+const hide=id=>document.getElementById(id).style.display='none';
+const mark=id=>document.getElementById(id).classList.add('inv');
+const unmark=id=>document.getElementById(id).classList.remove('inv');
+
+function onIcon(e){const f=e.target.files[0];if(!f)return;S.iconFile=f;const r=new FileReader();r.onload=ev=>{S.iconUrl=ev.target.result;document.getElementById('iprev').innerHTML=`<img src="${ev.target.result}" alt="i">`;};r.readAsDataURL(f);}
+function onVp(v){document.getElementById('vcf').style.display=v==='custom'?'block':'none';}
+function setSrc(t){S.srcType=t;['url','file'].forEach(x=>{document.getElementById('tb-'+x).className='tb '+(x===t?'on':'');document.getElementById('sp-'+x).className='sp '+(x===t?'on':'');});}
+function dzd(e,on){e.preventDefault();document.getElementById('dz').classList.toggle('ov',on);}
+function dzp(e){e.preventDefault();document.getElementById('dz').classList.remove('ov');const f=e.dataTransfer.files[0];if(f)setF(f);}
+function onF(e){const f=e.target.files[0];if(f)setF(f);}
+function setF(f){S.fileObj=f;document.getElementById('fcho').style.display='flex';document.getElementById('fn').textContent=f.name;document.getElementById('fs').textContent=fmt(f.size);hide('e3');}
+function fmt(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
+
+function buildRv(){const src=S.srcType==='url'?S.webUrl:(S.fileObj?S.fileObj.name:'—');document.getElementById('rv').innerHTML=`<div class="rvitem"><div class="rvico">${S.iconUrl?`<img src="${S.iconUrl}">`:'📱'}</div><div><div class="rvl">Nama</div><div class="rvv">${S.appName}</div></div></div><div class="rvitem"><div class="rvico">🏷</div><div><div class="rvl">Package</div><div class="rvv">${S.pkgName}</div></div></div><div class="rvitem"><div class="rvico">🔢</div><div><div class="rvl">Versi · SDK</div><div class="rvv">${S.version} · API ${S.targetSdk}/${S.minSdk}</div></div></div><div class="rvitem"><div class="rvico">${S.srcType==='url'?'🌐':'📁'}</div><div><div class="rvl">Sumber</div><div class="rvv">${src}</div></div></div>`;}
+
+async function startBuild(){
+  switchPage('pg-d');
+  resetD();
+  document.getElementById('aname').textContent=S.appName;
+  document.getElementById('ameta2').textContent=`v${S.version} · ${S.pkgName}`;
+  if(S.iconUrl)document.getElementById('aico').innerHTML=`<img src="${S.iconUrl}" alt="i">`;
+  setSt(0,'on');
+  addLog('▶ Sending build request...','');
+
+  const payload={appName:S.appName,packageName:S.pkgName,version:S.version,versionCode:1,targetSdk:S.targetSdk,minSdk:S.minSdk,orientation:S.orientation,sourceType:S.srcType,webUrl:S.webUrl,entryPoint:S.entryPoint,iconUrl:S.iconUrl||''};
+
+  if(S.srcType==='file'&&S.fileObj){
+    if(S.fileObj.size>10*1024*1024){showErr('File terlalu besar (>10MB).\nGunakan URL website, atau jalankan server lokal untuk file besar.');return;}
+    addLog('⚠ File mode: file akan diupload ke GitHub via API','w');
+  }
+
+  try{
+    const r=await fetch('/api/build',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Build failed');
+    S.runId=d.runId;
+    S.buildId=d.buildId;
+    setSt(0,'ok');setSt(1,'on');
+    addLog('✔ GitHub Actions triggered','s');
+    if(d.runId){
+      const url=`https://github.com/${d.owner}/${d.repo}/actions/runs/${d.runId}`;
+      const gl=document.getElementById('ghlink');
+      gl.href=url;gl.style.display='inline-flex';
+      addLog('🐙 Run: '+url,'');
+    }
+    pollStatus(d.runId,d.buildId);
+  }catch(err){
+    showErr('Build gagal: '+err.message+'\n\nPastikan env vars sudah di-set di Vercel:\nGH_TOKEN, GH_OWNER, GH_REPO');
+    setBadge('fail','✘ Error');
+  }
+}
+
+let pt;
+async function pollStatus(runId,buildId){
+  if(pt)clearInterval(pt);
+  let fake=10;
+  pt=setInterval(async()=>{
+    try{
+      const r=await fetch(`/api/build?runId=${runId}&buildId=${buildId}`);
+      const d=await r.json();
+      // Animate progress even when waiting
+      if(d.status==='in_progress'){fake=Math.min(fake+2,90);}
+      setProg(d.status==='completed'?100:fake);
+      if(d.status==='queued'){setSt(1,'on');setBadge('','⚙ Queued...');}
+      if(d.status==='in_progress'){
+        setBadge('','⚙ Building...');
+        if(fake>20){setSt(1,'ok');setSt(2,'on');}
+        if(fake>40){setSt(2,'ok');setSt(3,'on');}
+        if(fake>60){setSt(3,'ok');setSt(4,'on');}
+        if(fake>80){setSt(4,'ok');setSt(5,'on');}
+      }
+      if(d.status==='completed'){
+        clearInterval(pt);
+        if(d.conclusion==='success'){
+          for(let i=0;i<6;i++)setSt(i,'ok');
+          setProg(100);setBadge('done','✔ Selesai');
+          S.downloadUrl=d.downloadUrl;
+          document.getElementById('apkn').textContent=S.appName.toLowerCase().replace(/\s+/g,'-')+'-v'+S.version+'.zip';
+          document.getElementById('dn').className='done show';
+          addLog('🎉 BUILD BERHASIL!','s');
+        }else{
+          setBadge('fail','✘ Gagal ('+d.conclusion+')');
+          showErr('Build gagal.\nCek detail di GitHub Actions link di atas.\nPastikan Android SDK steps berjalan dengan benar.');
+          addLog('✘ '+d.conclusion,'e');
+        }
+      }
+    }catch(e){addLog('⚠ Poll: '+e.message,'w');}
+  },6000);
+}
+
+function setProg(p){document.getElementById('pf').style.width=p+'%';document.getElementById('pp').textContent=p+'%';}
+function setSt(i,s){document.getElementById('st'+i).className='stage '+(s==='on'?'on':s==='ok'?'ok':'');document.getElementById('ss'+i).textContent=s==='on'?'running...':s==='ok'?'✔':'—';}
+function setBadge(cls,txt){const b=document.getElementById('bst');b.className='bst '+(cls||'');b.textContent=txt;}
+function addLog(msg,lvl){const box=document.getElementById('log');const ts=new Date().toTimeString().slice(0,8);const d=document.createElement('div');d.className='ll';const cls=lvl==='e'?'e':lvl==='s'?'s':lvl==='w'?'w':'';d.innerHTML=`<span class="lts">[${ts}]</span><span class="lm ${cls}">${esc(msg)}</span>`;box.appendChild(d);box.scrollTop=box.scrollHeight;}
+function showErr(msg){const b=document.getElementById('eb');b.innerHTML='⚠ '+msg.replace(/\n/g,'<br>');b.className='ebanner show';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function doDownload(){if(S.downloadUrl)window.open(S.downloadUrl,'_blank');}
+function newBuild(){if(pt)clearInterval(pt);switchPage('pg-b');}
+function resetD(){for(let i=0;i<6;i++)setSt(i,'');document.getElementById('log').innerHTML='';setProg(0);document.getElementById('dn').className='done';document.getElementById('eb').className='ebanner';document.getElementById('bst').className='bst';document.getElementById('bst').textContent='⚙ Queued';document.getElementById('aico').innerHTML='📱';document.getElementById('ghlink').style.display='none';}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+</script>
+</body>
+</html>
